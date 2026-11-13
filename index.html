@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ADAS Mobile Logger - Pro Master v2.4</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #12151c; color: #f0f4f8; padding: 10px; max-width: 600px; margin: 0 auto; padding-bottom: 60px; }
+        .box { background: #1b202b; border: 1px solid #323c4e; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+        .title { font-size: 11px; text-transform: uppercase; color: #8b9bb4; font-weight: 700; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; }
+        input, textarea, select { background: #12151c; border: 1px solid #323c4e; color: #f0f4f8; padding: 10px; border-radius: 8px; font-size: 15px; width: 100%; outline: none; }
+        input:focus, textarea:focus, select:focus { border-color: #3b82f6; }
+        .row { display: flex; gap: 6px; margin-bottom: 6px; }
+        .btn { padding: 10px; border: none; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; text-align: center; }
+        .btn-green { background: #22c55e; color: #052e16; font-weight: bold; width: 100%; font-size: 15px; padding: 14px; }
+        .btn-blue { background: #3b82f6; color: white; padding: 6px 10px; font-size: 11px; }
+        .btn-sec { background: #242b38; color: #f0f4f8; border: 1px solid #323c4e; flex: 1; }
+        .btn-red { background: #ef4444; color: white; padding: 6px 10px; font-size: 11px; }
+        .btn-orange { background: #f59e0b; color: #1c1917; flex: 1; }
+        .btn-purple { background: #a855f7; color: white; font-weight: bold; width: 100%; padding: 12px; font-size: 14px; margin-top: 8px; }
+        
+        .btn-tag-main { background: #2563eb; color: white; font-weight: 800; font-size: 20px; letter-spacing: 0.5px; width: 100%; padding: 18px; border-radius: 10px; border: 2px solid #60a5fa; cursor: pointer; text-align: center; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4); }
+        .btn-tag-main:active { background: #1d4ed8; transform: scale(0.99); }
+
+        .flex-grid-3 { display: flex; flex-wrap: wrap; gap: 6px; }
+        .flex-grid-3 > .chip { flex: 1 1 calc(33.333% - 4px); min-width: 95px; }
+
+        .flex-grid-2 { display: flex; flex-wrap: wrap; gap: 6px; }
+        .flex-grid-2 > .chip { flex: 1 1 calc(50% - 4px); min-width: 140px; }
+
+        .flex-grid-4 { display: flex; gap: 6px; }
+        .flex-grid-4 > .sev-btn { flex: 1; }
+
+        .chip { background: #242b38; border: 1px solid #323c4e; color: #f0f4f8; padding: 8px 6px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; word-break: break-word; user-select: none; }
+        .chip span.pl-sub { font-size: 9px; color: #8b9bb4; font-weight: 400; margin-top: 2px; pointer-events: none; }
+        
+        .chip.active-act { background: #22c55e !important; color: #052e16 !important; border-color: #4ade80 !important; }
+        .chip.active-act span.pl-sub { color: #064e3b !important; font-weight: 600; }
+
+        .chip.active-mod { background: #3b82f6 !important; color: white !important; border-color: #60a5fa !important; }
+        .chip.active-mod span.pl-sub { color: #bfdbfe !important; font-weight: 600; }
+
+        .sev-btn { padding: 10px 2px; border-radius: 8px; font-weight: 800; font-size: 13px; border: 2px solid transparent; opacity: 0.4; cursor: pointer; text-align: center; }
+        .sev-btn.active { opacity: 1; border-color: white; }
+        .sev-XXL { background: #ef4444; color: white; }
+        .sev-XL { background: #eab308; color: #1c1917; }
+        .sev-L { background: #3b82f6; color: white; }
+        .sev-NONE { background: #475569; color: white; font-size: 11px; }
+
+        .event-item { background: #242b38; border: 1px solid #323c4e; padding: 8px 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 6px; }
+        .badge { padding: 2px 5px; border-radius: 4px; font-weight: 800; font-size: 10px; margin-right: 4px; }
+        .badge-none { background: #334155; color: #94a3b8; }
+        
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #22c55e; color: #052e16; padding: 10px 16px; border-radius: 8px; font-weight: 700; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 999; }
+        .toast.show { opacity: 1; }
+        .session-info { font-size: 10px; color: #10b981; text-align: right; margin-bottom: 4px; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+    <div class="box" style="padding-bottom: 6px;">
+        <div class="session-info" id="sessionStatus">🟢 Sesja aktywna (auto-odświeżanie co 10 min)</div>
+        <div class="row">
+            <input type="text" id="routeName" placeholder="Nazwa trasy (Route name)..." style="flex:2;">
+            <input type="text" id="recTime" placeholder="Rec time (HH:MM)" style="flex:1; text-align:center; font-family:monospace;">
+        </div>
+        <div class="row" style="margin-top: 6px; margin-bottom: 0;">
+            <button class="btn btn-sec" id="btnNewRoute">+ Nowa trasa</button>
+            <button class="btn btn-red" id="btnClearAll">Wyczyść pamięć</button>
+        </div>
+    </div>
+
+    <div class="box" style="padding: 8px;">
+        <button class="btn-tag-main" id="btnTagMain">🔴 TAGUJ</button>
+    </div>
+
+    <div class="box">
+        <div class="title">
+            <span>1. Activity (Kategoria)</span>
+            <span id="actLabel" style="color:#22c55e; font-weight:bold;">Braking</span>
+        </div>
+        <div id="actGrid" class="flex-grid-3"></div>
+    </div>
+
+    <div class="box">
+        <div class="title">
+            <span>2. Modifier (Modyfikator i opis)</span>
+            <span id="modLabel" style="color:#3b82f6; font-weight:bold;">-</span>
+        </div>
+        <div id="modGrid" class="flex-grid-2"></div>
+        <textarea id="eventComment" placeholder="Opcjonalny komentarz / zakres czasu (np. 14:43-14:47)..." style="margin-top: 8px; min-height: 48px;"></textarea>
+    </div>
+
+    <div class="box">
+        <div class="title" id="formTitle">3. Skala i czas zdarzenia</div>
+        
+        <div style="font-size: 11px; color: #8b9bb4; margin-bottom: 4px;">Severity / Skala:</div>
+        <div class="flex-grid-4" style="margin-bottom: 8px;">
+            <button class="sev-btn sev-XXL" data-sev="XXL">XXL</button>
+            <button class="sev-btn sev-XL active" data-sev="XL">XL</button>
+            <button class="sev-btn sev-L" data-sev="L">L</button>
+            <button class="sev-btn sev-NONE" data-sev="">BRAK</button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
+            <div>
+                <div style="font-size: 10px; color: #8b9bb4; margin-bottom: 2px;">Czas Live (HH:MM):</div>
+                <input type="text" id="liveTime" readonly style="font-family:monospace; text-align:center; background:#121824; border-color:#323c4e; color:#94a3b8; font-size:13px;">
+            </div>
+            <div>
+                <div style="font-size: 10px; color: #22c55e; font-weight: bold; margin-bottom: 2px;">Czas tagu:</div>
+                <input type="text" id="eventTime" placeholder="HH:MM" style="font-family:monospace; text-align:center; background:#122015; border-color:#22c55e; font-weight:bold; font-size:13px;">
+            </div>
+        </div>
+
+        <div id="actionButtons">
+            <button class="btn btn-green" id="btnAddEvent">➕ DODAJ ZDARZENIE DO RAPORTU</button>
+        </div>
+    </div>
+
+    <div class="box">
+        <div class="title"><span>Zalogowane (<span id="evCount">0</span>)</span></div>
+        <div id="evList" style="max-height: 150px; overflow-y:auto;"></div>
+    </div>
+
+    <!-- RAPORT AKTUALNEJ TRASY -->
+    <div class="box">
+        <div class="title">
+            <span>Raport aktualnej trasy</span>
+            <button class="btn btn-blue" id="btnCopyCurrent">📋 Kopiuj</button>
+        </div>
+        <textarea id="reportCurrent" style="width: 100%; height: 110px; font-family: monospace; font-size: 11px; background: #090b0e; border: 1px solid #323c4e; border-radius: 8px; padding: 8px; color: #cbd5e1; margin-top: 6px; resize: vertical;"></textarea>
+        <button class="btn btn-purple" id="btnAddRouteToDaily">📥 Dodaj tę trasę do Raportu Dziennego</button>
+    </div>
+
+    <!-- RAPORT DZIENNY (ZBIORCZY) -->
+    <div class="box" style="border-color: #a855f7;">
+        <div class="title">
+            <span>Raport Dzienny (<span id="dailyCount">0</span> tras)</span>
+            <div style="display: flex; gap: 4px;">
+                <button class="btn btn-red" id="btnClearDaily">🗑️ Wyczyść</button>
+                <button class="btn btn-blue" id="btnCopyDaily">📋 Kopiuj</button>
+            </div>
+        </div>
+        <textarea id="reportDaily" style="width: 100%; height: 130px; font-family: monospace; font-size: 11px; background: #090b0e; border: 1px solid #323c4e; border-radius: 8px; padding: 8px; color: #cbd5e1; margin-top: 6px; resize: vertical;" placeholder="Brak zapisanych tras w raporcie dziennym..."></textarea>
+    </div>
+
+    <div id="toast" class="toast">Powiadomienie</div>
+
+<script>
+const ADAS_DATA = {
+    "Braking": [
+        { en: "Ghost Braking", pl: "Fantomowe hamowanie" },
+        { en: "Hard Braking", pl: "Ostre hamowanie" },
+        { en: "Pulse Braking", pl: "Pulsacyjne hamowanie" }
+    ],
+    "Steering": [
+        { en: "Lateral Jerk", pl: "Szarpnięcie boczne" },
+        { en: "Steering Wheel Shaking", pl: "Drgania kierownicy" },
+        { en: "Vehicle Wobble", pl: "Pływanie pojazdu" },
+        { en: "Gone Passive", pl: "Przejście w pasywny" },
+        { en: "Too Late", pl: "Za późno" },
+        { en: "Too Early", pl: "Za wcześnie" },
+        { en: "False Positive", pl: "FP: Fałszywa reakcja układu" }
+    ],
+    "Risky Driving": [
+        { en: "Late Braking/False Acc", pl: "Późne hamow. / fałszywy gaz" },
+        { en: "Not Yielding to Vehicle", pl: "Nieustąpienie pojazdowi" },
+        { en: "Unexpected drive-off", pl: "Nieoczekiwane ruszenie" }
+    ],
+    "Positioning": [
+        { en: "Creeping", pl: "Pełzanie" },
+        { en: "Lane Drift", pl: "Znoszenie z pasa" },
+        { en: "Lane Hugging (Lat)", pl: "Jazda przy krawędzi" },
+        { en: "Too Close (Long)", pl: "Za blisko (wzdłużnie)" },
+        { en: "Too Far (Long)", pl: "Za daleko (wzdłużnie)" },
+        { en: "FP nudge", pl: "FP: Zła / fałszywa korekta" },
+        { en: "FN nudge", pl: "FN: Brak korekty toru" },
+        { en: "Good Nudge", pl: "Dobra korekta" }
+    ],
+    "Wait Element": [
+        { en: "Pass", pl: "Zaliczone" },
+        { en: "Stuck inside intersection", pl: "Utknięcie na skrzyżowaniu" },
+        { en: "No Stop on Red", pl: "Brak zatrzymania na czerw." },
+        { en: "Ghost Brake", pl: "Fantomowy hamulec" },
+        { en: "No drive-off on green/STOP", pl: "Brak ruszenia na zielonym" },
+        { en: "Drive-off on Red", pl: "Ruszenie na czerwonym" },
+        { en: "Fail to Yield", pl: "Brak ustąpienia" },
+        { en: "Fail to STOP", pl: "Brak STOPu" }
+    ],
+    "Acc/Speed": [
+        { en: "Hesitant", pl: "Niepewny" },
+        { en: "Wrong Speed Display", pl: "Błędny odczyt prędkości" },
+        { en: "Wrong Set Speed", pl: "Zła prędkość zadana" },
+        { en: "Too Slow in Curve", pl: "Za wolno w łuku" },
+        { en: "Too Fast in Curve", pl: "Za szybko w łuku" },
+        { en: "Correct Set Speed", pl: "Prawidłowa prędkość" },
+        { en: "No Set Speed Adjustment", pl: "Brak dostos. prędkości" },
+        { en: "Underspeed", pl: "Za wolno" },
+        { en: "Overspeed", pl: "Za szybko" }
+    ],
+    "Lane Change": [
+        { en: "Good Lane Change (SILC or DILC)", pl: "Dobra zmiana pasa" },
+        { en: "SILC for no reason", pl: "SILC bez powodu" },
+        { en: "Missed (Hesitant)", pl: "Pominięta / niepewna" },
+        { en: "Correct reject / abort", pl: "Prawidłowe odrzucenie" },
+        { en: "Should SILC (comment why)", pl: "Powinien zmienić pas" },
+        { en: "Dangerous", pl: "Niebezpieczna" },
+        { en: "Uncomfortable", pl: "Niekomfortowa" },
+        { en: "False Abort", pl: "Fałszywe przerwanie" }
+    ],
+    "Warning": [
+        { en: "False Positive", pl: "FP: Fałszywy alarm" },
+        { en: "False Negative", pl: "FN: Brak alarmu" },
+        { en: "Too Early", pl: "Za wcześnie" },
+        { en: "Too Late", pl: "Za późno" },
+        { en: "Too Short", pl: "Za krótko" },
+        { en: "Too Long", pl: "Za długo" }
+    ],
+    "Scenario": [
+        { en: "Pass", pl: "Zaliczone" },
+        { en: "Fail", pl: "Niezaliczone" },
+        { en: "Attempt", pl: "Próba" }
+    ],
+    "Disengagement": [
+        { en: "Active Error", pl: "Błąd aktywny" },
+        { en: "Self-disengagement", pl: "Samorozłączenie" },
+        { en: "Known limitation", pl: "Znane ograniczenie" },
+        { en: "Operational", pl: "Operacyjne" }
+    ],
+    "Curve Speed Adaptation": [
+        { en: "Good", pl: "Dobra" },
+        { en: "Late", pl: "Późna" },
+        { en: "Early", pl: "Wczesna" },
+        { en: "Excessive Braking", pl: "Nadmierne hamowanie" },
+        { en: "Insufficient Braking", pl: "Zbyt słabe hamowanie" },
+        { en: "Unexpected", pl: "Nieoczekiwana" },
+        { en: "Missed", pl: "Pominięta" }
+    ],
+    "VRUs": [
+        { en: "Pass", pl: "Zaliczone" },
+        { en: "FN yield pedestrian", pl: "FN: Nie ustąpił pieszemu" },
+        { en: "FP yield pedestrian", pl: "FP: Fałszywe ustąpienie piesz." },
+        { en: "FN yield bike", pl: "FN: Nie ustąpił rowerzyście" },
+        { en: "FP yield bike", pl: "FP: Fałszywe ustąpienie rower." }
+    ],
+    "Turns": [
+        { en: "Understeer", pl: "Podsterowność" },
+        { en: "Oversteer", pl: "Nadsterowność" },
+        { en: "Hesitation/Braking", pl: "Wahanie / hamowanie" },
+        { en: "Satisfactory", pl: "Zadowalająca" },
+        { en: "Missed", pl: "Pominięty" },
+        { en: "Wrong", pl: "Błędny" },
+        { en: "Jerky/Wobble", pl: "Szarpany / niestabilny" }
+    ],
+    "HFE": [
+        { en: "HFE Engaged", pl: "HFE włączone" },
+        { en: "HFE Disengaged", pl: "HFE rozłączone" },
+        { en: "HFE FP Disengaged", pl: "HFE FP rozłączenie" },
+        { en: "HFE FN Disengaged", pl: "HFE FN rozłączenie" }
+    ]
+};
+
+const ACT_PL = {
+    "Braking": "Hamowanie",
+    "Steering": "Kierowanie",
+    "Risky Driving": "Ryzykowna jazda",
+    "Positioning": "Pozycjonowanie",
+    "Wait Element": "Element oczekiwania",
+    "Acc/Speed": "Prędkość / Akceleracja",
+    "Lane Change": "Zmiana pasa",
+    "Warning": "Ostrzeżenia",
+    "Scenario": "Scenariusz",
+    "Disengagement": "Rozłączenie",
+    "Curve Speed Adaptation": "Adaptacja prędkości w łuku",
+    "VRUs": "Niechronieni uczestnicy (VRU)",
+    "Turns": "Skręty",
+    "HFE": "HFE"
+};
+
+let state = {
+    routeName: "",
+    recTime: "",
+    act: "Braking",
+    mod: "Ghost Braking",
+    sev: "XL",
+    events: [],
+    savedRoutes: [],
+    editingId: null,
+    manualReportEdit: false
+};
+
+let liveTimer = null;
+let sessionRefreshTimer = null;
+
+function getFormattedTime() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function initApp() {
+    try {
+        const saved = localStorage.getItem("adas_v48_final");
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === 'object') {
+                state = {
+                    routeName: parsed.routeName || "",
+                    recTime: parsed.recTime || "",
+                    act: (parsed.act && ADAS_DATA[parsed.act]) ? parsed.act : "Braking",
+                    mod: parsed.mod || ADAS_DATA["Braking"][0].en,
+                    sev: parsed.sev !== undefined ? parsed.sev : "XL",
+                    events: Array.isArray(parsed.events) ? parsed.events : [],
+                    savedRoutes: Array.isArray(parsed.savedRoutes) ? parsed.savedRoutes : [],
+                    editingId: null,
+                    manualReportEdit: false
+                };
+                if (!ADAS_DATA[state.act].some(m => m.en === state.mod)) {
+                    state.mod = ADAS_DATA[state.act][0].en;
+                }
+            }
+        }
+    } catch(e) {
+        console.error("Błąd odczytu localStorage:", e);
+    }
+
+    const rNameInput = document.getElementById("routeName");
+    const rTimeInput = document.getElementById("recTime");
+    const reportCurrent = document.getElementById("reportCurrent");
+
+    if (rNameInput) {
+        rNameInput.value = state.routeName;
+        rNameInput.addEventListener("input", () => {
+            state.routeName = rNameInput.value;
+            state.manualReportEdit = false;
+            saveState(true);
+        });
+    }
+
+    if (rTimeInput) {
+        rTimeInput.value = state.recTime;
+        rTimeInput.addEventListener("input", () => {
+            state.recTime = rTimeInput.value;
+            state.manualReportEdit = false;
+            saveState(true);
+        });
+    }
+
+    if (reportCurrent) {
+        reportCurrent.addEventListener("input", () => {
+            state.manualReportEdit = true;
+        });
+    }
+
+    document.getElementById("btnNewRoute").addEventListener("click", newRoute);
+    document.getElementById("btnClearAll").addEventListener("click", clearAll);
+    document.getElementById("btnCopyCurrent").addEventListener("click", () => copyText("reportCurrent", "Skopiowano raport trasy!"));
+    document.getElementById("btnCopyDaily").addEventListener("click", () => copyText("reportDaily", "Skopiowano raport dzienny!"));
+    document.getElementById("btnClearDaily").addEventListener("click", clearDailyRoutes);
+    document.getElementById("btnAddRouteToDaily").addEventListener("click", addCurrentRouteToDaily);
+    document.getElementById("btnTagMain").addEventListener("click", tagAction);
+    document.getElementById("btnAddEvent").addEventListener("click", handleEventAction);
+
+    document.querySelectorAll(".sev-btn").forEach(btn => {
+        btn.addEventListener("click", () => setSev(btn.getAttribute("data-sev")));
+    });
+
+    renderActs();
+    renderMods();
+    setSev(state.sev);
+    renderEvents();
+    updateReport();
+    updateDailyReportDisplay();
+
+    startLiveClock();
+    startSessionRefresher();
+
+    if (!document.getElementById("eventTime").value) {
+        captureTime();
+    }
+}
+
+function startLiveClock() {
+    if (liveTimer) clearInterval(liveTimer);
+    const liveEl = document.getElementById("liveTime");
+    if (liveEl) liveEl.value = getFormattedTime();
+    
+    liveTimer = setInterval(() => {
+        const el = document.getElementById("liveTime");
+        if (el) el.value = getFormattedTime();
+    }, 1000);
+}
+
+function startSessionRefresher() {
+    if (sessionRefreshTimer) clearInterval(sessionRefreshTimer);
+    
+    sessionRefreshTimer = setInterval(() => {
+        saveState(false);
+        const statusEl = document.getElementById("sessionStatus");
+        if (statusEl) {
+            const timeStr = getFormattedTime();
+            statusEl.textContent = `🟢 Sesja odświeżona automatycznie (${timeStr})`;
+            setTimeout(() => {
+                statusEl.textContent = "🟢 Sesja aktywna (auto-odświeżanie co 10 min)";
+            }, 4000);
+        }
+    }, 10 * 60 * 1000);
+}
+
+function captureTime() {
+    const timeEl = document.getElementById("eventTime");
+    if (timeEl) {
+        timeEl.value = getFormattedTime();
+    }
+}
+
+function tagAction() {
+    captureTime();
+    showToast("Zapisano czas!");
+    window.scrollTo({ top: 220, behavior: 'smooth' });
+}
+
+function saveState(updateRep = true) {
+    try { 
+        localStorage.setItem("adas_v48_final", JSON.stringify(state)); 
+    } catch(e) {}
+    if (updateRep && !state.manualReportEdit) {
+        updateReport();
+    }
+}
+
+function renderActs() {
+    const grid = document.getElementById("actGrid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    Object.keys(ADAS_DATA).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "chip" + (state.act === a ? " active-act" : "");
+        const plName = ACT_PL[a] || "";
+        div.innerHTML = `${a}<span class="pl-sub">(${plName})</span>`;
+        div.addEventListener("click", () => {
+            state.act = a;
+            if (!ADAS_DATA[a].some(m => m.en === state.mod)) {
+                state.mod = ADAS_DATA[a][0].en;
+            }
+            if (a === "Disengagement" || a === "Warning" || a === "Scenario" || a === "HFE") {
+                setSev("");
+            }
+            const commentBox = document.getElementById("eventComment");
+            if (commentBox) {
+                commentBox.placeholder = "Opcjonalny komentarz do modyfikatora...";
+            }
+            renderActs();
+            renderMods();
+            saveState();
+        });
+        grid.appendChild(div);
+    });
+    const label = document.getElementById("actLabel");
+    if (label) label.textContent = state.act;
+}
+
+function renderMods() {
+    const grid = document.getElementById("modGrid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    const list = ADAS_DATA[state.act] || [];
+    list.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "chip" + (state.mod === item.en ? " active-mod" : "");
+        div.innerHTML = `${item.en}<span class="pl-sub">(${item.pl})</span>`;
+        div.addEventListener("click", () => {
+            state.mod = item.en;
+            renderMods();
+            saveState();
+        });
+        grid.appendChild(div);
+    });
+    const label = document.getElementById("modLabel");
+    if (label) label.textContent = state.mod;
+}
+
+function setSev(s) {
+    state.sev = s;
+    document.querySelectorAll(".sev-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.getAttribute("data-sev") === s);
+    });
+    saveState();
+}
+
+function handleEventAction() {
+    const tEl = document.getElementById("eventTime");
+    const cEl = document.getElementById("eventComment");
+    const t = tEl ? tEl.value.trim() || getFormattedTime() : getFormattedTime();
+    const c = cEl ? cEl.value.trim() : "";
+
+    state.manualReportEdit = false;
+
+    if (state.editingId !== null) {
+        const ev = state.events.find(e => e.id === state.editingId);
+        if (ev) {
+            ev.time = t;
+            ev.sev = state.sev;
+            ev.act = state.act;
+            ev.mod = state.mod;
+            ev.comment = c;
+        }
+        state.editingId = null;
+        document.getElementById("formTitle").textContent = "3. Skala i czas zdarzenia";
+        document.getElementById("actionButtons").innerHTML = `<button class="btn btn-green" id="btnAddEvent">➕ DODAJ ZDARZENIE DO RAPORTU</button>`;
+        document.getElementById("btnAddEvent").addEventListener("click", handleEventAction);
+        if (cEl) cEl.value = "";
+        captureTime();
+        showToast("Zaktualizowano zdarzenie!");
+    } else {
+        state.events.push({
+            id: Date.now(),
+            time: t,
+            sev: state.sev,
+            act: state.act,
+            mod: state.mod,
+            comment: c
+        });
+        if (cEl) cEl.value = "";
+        captureTime();
+        showToast("Dodano zdarzenie do raportu!");
+    }
+    
+    saveState(true);
+    renderEvents();
+    updateReport();
+}
+
+function startEdit(id) {
+    const ev = state.events.find(e => e.id === id);
+    if (!ev) return;
+
+    state.editingId = id;
+    state.act = ev.act;
+    state.mod = ev.mod;
+    setSev(ev.sev !== undefined ? ev.sev : "XL");
+    
+    document.getElementById("eventTime").value = ev.time;
+    document.getElementById("eventComment").value = ev.comment || "";
+
+    renderActs();
+    renderMods();
+
+    document.getElementById("formTitle").textContent = "3. Edycja zdarzenia";
+    document.getElementById("actionButtons").innerHTML = `
+        <div class="row">
+            <button class="btn btn-orange" id="btnSaveEdit">💾 Zapisz zmiany</button>
+            <button class="btn btn-sec" id="btnCancelEdit">❌ Anuluj</button>
+        </div>
+    `;
+    document.getElementById("btnSaveEdit").addEventListener("click", handleEventAction);
+    document.getElementById("btnCancelEdit").addEventListener("click", cancelEdit);
+
+    window.scrollTo({ top: 300, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+    state.editingId = null;
+    document.getElementById("formTitle").textContent = "3. Skala i czas zdarzenia";
+    document.getElementById("actionButtons").innerHTML = `<button class="btn btn-green" id="btnAddEvent">➕ DODAJ ZDARZENIE DO RAPORTU</button>`;
+    document.getElementById("btnAddEvent").addEventListener("click", handleEventAction);
+    document.getElementById("eventComment").value = "";
+    captureTime();
+}
+
+function removeEvent(id) {
+    if (state.editingId === id) cancelEdit();
+    state.events = state.events.filter(e => e.id !== id);
+    state.manualReportEdit = false;
+    saveState(true);
+    renderEvents();
+    updateReport();
+}
+
+function renderEvents() {
+    const list = document.getElementById("evList");
+    const countEl = document.getElementById("evCount");
+    if (!list || !countEl) return;
+    countEl.textContent = state.events.length;
+    list.innerHTML = "";
+
+    [...state.events].reverse().forEach(ev => {
+        const item = document.createElement("div");
+        item.className = "event-item";
+        const com = ev.comment ? ` — "${ev.comment}"` : "";
+        
+        let badgeHtml = "";
+        if (ev.sev !== undefined && ev.sev !== "") {
+            badgeHtml = `<span class="badge sev-${ev.sev}">${ev.sev}</span>`;
+        } else {
+            badgeHtml = `<span class="badge badge-none">-</span>`;
+        }
+
+        const infoDiv = document.createElement("div");
+        infoDiv.innerHTML = `${badgeHtml}<strong>${ev.time}</strong> | ${ev.act}, ${ev.mod}${com}`;
+        
+        const btnContainer = document.createElement("div");
+        btnContainer.style.display = "flex";
+        btnContainer.style.gap = "4px";
+
+        const editBtn = document.createElement("button");
+        editBtn.className = "btn btn-orange";
+        editBtn.style.cssText = "padding: 2px 6px; font-size: 10px;";
+        editBtn.textContent = "✏️";
+        editBtn.addEventListener("click", () => startEdit(ev.id));
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "btn btn-red";
+        delBtn.style.cssText = "padding: 2px 6px; font-size: 10px;";
+        delBtn.textContent = "✕";
+        delBtn.addEventListener("click", () => removeEvent(ev.id));
+
+        btnContainer.appendChild(editBtn);
+        btnContainer.appendChild(delBtn);
+
+        item.appendChild(infoDiv);
+        item.appendChild(btnContainer);
+        list.appendChild(item);
+    });
+}
+
+function generateRouteReportText() {
+    const rNameInput = document.getElementById("routeName");
+    const rTimeInput = document.getElementById("recTime");
+    
+    const rName = rNameInput && rNameInput.value.trim() ? rNameInput.value.trim() : (state.routeName ? state.routeName.trim() : "[BRAK TRASY]");
+    const rTime = rTimeInput && rTimeInput.value.trim() ? rTimeInput.value.trim() : (state.recTime ? state.recTime.trim() : "[BRAK REC TIME]");
+    
+    let out = `Route name: ${rName}\nRec time: ${rTime}\n\nMain Events:\n`;
+    if (state.events.length === 0) {
+        out += `- None\n`;
+    } else {
+        state.events.forEach(e => {
+            if (e.act === "Warning" || e.act === "Scenario" || e.act === "HFE") {
+                const comStr = e.comment ? `, ${e.comment}` : "";
+                out += `${e.time} ${e.act}, ${e.mod}${comStr}\n`;
+            } else {
+                const sevStr = (e.sev !== undefined && e.sev !== "") ? `${e.sev}, ` : "";
+                const comStr = e.comment ? `, ${e.comment}` : "";
+                out += `${e.time} ${sevStr}${e.act}, ${e.mod}${comStr}\n`;
+            }
+        });
+    }
+
+    return out;
+}
+
+function updateReport() {
+    const repCurrent = document.getElementById("reportCurrent");
+    if (repCurrent) {
+        repCurrent.value = generateRouteReportText();
+    }
+}
+
+function addCurrentRouteToDaily() {
+    if (!confirm("Czy na pewno chcesz dodać tę trasę do Raportu Dziennego?")) return;
+    const repCurrent = document.getElementById("reportCurrent");
+    const text = (repCurrent && repCurrent.value.trim()) ? repCurrent.value : generateRouteReportText();
+    if (!state.savedRoutes) state.savedRoutes = [];
+    state.savedRoutes.push(text);
+    saveState(false);
+    updateDailyReportDisplay();
+    showToast("Dodano trasę do Raportu Dziennego!");
+}
+
+function updateDailyReportDisplay() {
+    if (!state.savedRoutes) state.savedRoutes = [];
+    const dailyCountEl = document.getElementById("dailyCount");
+    if (dailyCountEl) dailyCountEl.textContent = state.savedRoutes.length;
+
+    const reportDaily = document.getElementById("reportDaily");
+    if (reportDaily) {
+        if (state.savedRoutes.length === 0) {
+            reportDaily.value = "";
+        } else {
+            reportDaily.value = state.savedRoutes.join("\n----------------------------------------\n\n");
+        }
+    }
+}
+
+function clearDailyRoutes() {
+    if (!confirm("Wyczyścić wszystkie zapisane trasy z Raportu Dziennego?")) return;
+    state.savedRoutes = [];
+    saveState(false);
+    updateDailyReportDisplay();
+    showToast("Wyczyszczono raport dzienny");
+}
+
+function copyText(elementId, successMsg) {
+    const box = document.getElementById(elementId);
+    if (!box || !box.value.trim()) {
+        showToast("Brak treści do skopiowania!");
+        return;
+    }
+    box.select();
+    box.setSelectionRange(0, 99999);
+
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(box.value).then(() => {
+                showToast(successMsg);
+            }).catch(() => {
+                document.execCommand('copy');
+                showToast(successMsg);
+            });
+        } else {
+            document.execCommand('copy');
+            showToast(successMsg);
+        }
+    } catch (e) {
+        showToast("Zaznacz i skopiuj ręcznie");
+    }
+}
+
+function newRoute() {
+    if (state.events.length > 0 && !confirm("Rozpocząć nową trasę? Obecne zdarzenia zostaną wyczyszczone.")) return;
+    state.routeName = "";
+    state.recTime = "";
+    state.events = [];
+    state.editingId = null;
+    state.manualReportEdit = false;
+    document.getElementById("routeName").value = "";
+    document.getElementById("recTime").value = "";
+    cancelEdit();
+    saveState(true);
+    renderEvents();
+    updateReport();
+}
+
+function clearAll() {
+    if (!confirm("Wyczyścić całą pamięć aplikacji i zresetować ustawienia?")) return;
+    localStorage.removeItem("adas_v48_final");
+    location.reload();
+}
+
+function showToast(msg) {
+    const t = document.getElementById("toast");
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initApp);
+} else {
+    initApp();
+}
+</script>
+</body>
+</html>
